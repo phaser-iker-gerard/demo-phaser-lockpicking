@@ -49,3 +49,8 @@ Gestiona el minijoc de ganzúes. El jugador ha de seleccionar una posició corre
 Durant el desenvolupament s’ha treballat la integració de Phaser v3 en una web publicada a BAS, la divisió del joc en escenes i la connexió entre una mecànica principal d’exploració i una mecànica secundària de lockpicking.
 
 Un dels principals reptes ha estat organitzar el projecte perquè cada membre del grup pugui treballar en una part diferent utilitzant GitHub i issues sense trepitjar el codi de l’altre.# demo-phaser-lockpicking
+## Enllaços del projecte
+
+- Repositori GitHub: https://github.com/phaser-iker-gerard/demo-phaser-lockpicking
+- GitHub Pages: https://phaser-iker-gerard.github.io/demo-phaser-lockpicking/
+- BAS: https://bas.udg.edu/~u6105302/demo-phaser-lockpicking/
