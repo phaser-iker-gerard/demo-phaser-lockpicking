@@ -173,25 +173,24 @@ class LockpickingScene extends Phaser.Scene {
     this.rotationIndex = 0;
     this.totalPositions = 12;
     this.attempts = 0;
-
-    this.gaps = [1, 4, 7, 10];
-    this.pickShape = [0, 3, 6, 9];
+    this.currentRound = 1;
+    this.totalRounds = 3;
 
     this.add.rectangle(400, 300, 650, 480, 0x000000, 0.95);
 
-    this.add.text(400, 80, 'MINIJOC DE GANZUES', {
+    this.titleText = this.add.text(400, 78, 'MINIJOC DE GANZUES', {
       fontSize: '32px',
       color: '#ffffff'
     }).setOrigin(0.5);
 
-    this.add.text(400, 118, 'Gira la peça fins que totes les puntes encaixin amb els buits', {
-      fontSize: '16px',
-      color: '#cccccc'
+    this.roundText = this.add.text(400, 118, '', {
+      fontSize: '18px',
+      color: '#ffffff'
     }).setOrigin(0.5);
 
-    this.add.text(400, 145, 'Inspirat en la roda de ganzues de Starfield', {
+    this.instructionText = this.add.text(400, 145, 'Gira la peça fins que totes les puntes encaixin amb els buits', {
       fontSize: '15px',
-      color: '#888888'
+      color: '#cccccc'
     }).setOrigin(0.5);
 
     this.wheelGraphics = this.add.graphics();
@@ -208,6 +207,7 @@ class LockpickingScene extends Phaser.Scene {
       color: '#cccccc'
     }).setOrigin(0.5);
 
+    this.generateRound();
     this.drawWheel();
     this.drawPick();
 
@@ -238,6 +238,45 @@ class LockpickingScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-ESC', () => {
       this.closeLockpicking();
     });
+  }
+
+  generateRound() {
+    this.rotationIndex = 0;
+
+    const gapAmount = Phaser.Math.Between(2, 5);
+    const correctRotation = Phaser.Math.Between(0, this.totalPositions - 1);
+
+    this.gaps = this.generateRandomIndexes(gapAmount);
+    this.pickShape = [];
+
+    for (let i = 0; i < this.gaps.length; i++) {
+      let pickIndex = this.gaps[i] - correctRotation;
+
+      while (pickIndex < 0) {
+        pickIndex += this.totalPositions;
+      }
+
+      this.pickShape.push(pickIndex % this.totalPositions);
+    }
+
+    this.roundText.setText('Ronda ' + this.currentRound + ' / ' + this.totalRounds);
+    this.resultText.setText('');
+  }
+
+  generateRandomIndexes(amount) {
+    const indexes = [];
+
+    while (indexes.length < amount) {
+      const value = Phaser.Math.Between(0, this.totalPositions - 1);
+
+      if (!indexes.includes(value)) {
+        indexes.push(value);
+      }
+    }
+
+    indexes.sort((a, b) => a - b);
+
+    return indexes;
   }
 
   drawWheel() {
@@ -337,19 +376,31 @@ class LockpickingScene extends Phaser.Scene {
     this.attempts++;
 
     if (this.doesPickFit()) {
-      this.resultText.setText('Correcte! Totes les puntes encaixen i la porta s obre.');
+      if (this.currentRound >= this.totalRounds) {
+        this.resultText.setText('Correcte! Has superat les 3 rodes i la porta s obre.');
 
-      this.door.isOpen = true;
-      this.door.setFillStyle(0x00ff00);
-      this.door.body.enable = false;
+        this.door.isOpen = true;
+        this.door.setFillStyle(0x00ff00);
+        this.door.body.enable = false;
 
-      this.time.delayedCall(1200, () => {
-        this.closeLockpicking();
-      });
+        this.time.delayedCall(1200, () => {
+          this.closeLockpicking();
+        });
+      } else {
+        this.resultText.setText('Correcte! Passes a la roda següent.');
+
+        this.currentRound++;
+
+        this.time.delayedCall(900, () => {
+          this.generateRound();
+          this.drawWheel();
+          this.drawPick();
+        });
+      }
     } else {
       this.resultText.setText(
         'No encaixa. Alguna punta no coincideix amb cap buit.\n' +
-        'Intents: ' + this.attempts
+        'Intents totals: ' + this.attempts
       );
     }
   }
