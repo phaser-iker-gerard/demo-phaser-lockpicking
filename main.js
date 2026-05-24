@@ -37,8 +37,9 @@ class GameScene extends Phaser.Scene {
 
   create() {
     this.isPaused = false;
+    this.gameCompleted = false;
 
-    this.player = this.add.circle(120, 120, 18, 0xffffff);
+    this.player = this.add.circle(130, 300, 18, 0xffffff);
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
 
@@ -56,28 +57,25 @@ class GameScene extends Phaser.Scene {
     });
 
     this.walls = this.physics.add.staticGroup();
+    this.doors = [];
 
-    this.createWall(400, 50, 700, 20);
-    this.createWall(400, 550, 700, 20);
-    this.createWall(50, 300, 20, 500);
-    this.createWall(750, 300, 20, 500);
-
-    this.createWall(250, 190, 20, 260);
-    this.createWall(550, 410, 20, 260);
-    this.createWall(400, 220, 300, 20);
-    this.createWall(400, 420, 300, 20);
-
-    this.door = this.add.rectangle(400, 320, 90, 20, 0xff0000);
-    this.physics.add.existing(this.door, true);
-    this.door.isOpen = false;
+    this.createHouse();
 
     this.physics.add.collider(this.player, this.walls);
-    this.physics.add.collider(this.player, this.door);
 
     this.nearDoorText = this.add.text(400, 520, '', {
       fontSize: '20px',
       color: '#ffffff'
     }).setOrigin(0.5);
+
+    this.completedText = this.add.text(400, 300, 'CASA OCUPADA', {
+      fontSize: '56px',
+      color: '#00ff66',
+      align: 'center',
+      backgroundColor: '#000000'
+    }).setOrigin(0.5);
+
+    this.completedText.setVisible(false);
 
     this.pauseText = this.add.text(400, 300, 'PAUSA\nPrem ESC per continuar', {
       fontSize: '36px',
@@ -93,14 +91,57 @@ class GameScene extends Phaser.Scene {
     });
 
     this.input.keyboard.on('keydown-E', () => {
-      if (this.isNearDoor() && !this.door.isOpen && !this.isPaused) {
+      const door = this.getNearClosedDoor();
+
+      if (door !== null && !this.isPaused && !this.gameCompleted) {
         this.scene.launch('LockpickingScene', {
-          door: this.door
+          door: door,
+          gameScene: this
         });
 
         this.scene.pause();
       }
     });
+  }
+
+  createHouse() {
+    this.createWall(400, 80, 680, 22);
+    this.createWall(400, 520, 680, 22);
+    this.createWall(70, 300, 22, 440);
+    this.createWall(730, 300, 22, 440);
+
+    this.createWall(260, 170, 22, 180);
+    this.createWall(260, 430, 22, 180);
+
+    this.createWall(520, 170, 22, 180);
+    this.createWall(520, 300, 22, 120);
+    this.createWall(520, 430, 22, 180);
+
+    this.createWall(625, 300, 210, 22);
+
+    this.createDoor(260, 300, 22, 80);
+    this.createDoor(520, 230, 22, 80);
+    this.createDoor(520, 370, 22, 80);
+
+    this.add.text(155, 115, 'Entrada', {
+      fontSize: '15px',
+      color: '#aaaaaa'
+    }).setOrigin(0.5);
+
+    this.add.text(390, 300, 'Passadis', {
+      fontSize: '15px',
+      color: '#aaaaaa'
+    }).setOrigin(0.5);
+
+    this.add.text(625, 190, 'Habitacio 1', {
+      fontSize: '15px',
+      color: '#aaaaaa'
+    }).setOrigin(0.5);
+
+    this.add.text(625, 420, 'Habitacio 2', {
+      fontSize: '15px',
+      color: '#aaaaaa'
+    }).setOrigin(0.5);
   }
 
   createWall(x, y, width, height) {
@@ -109,18 +150,63 @@ class GameScene extends Phaser.Scene {
     this.walls.add(wall);
   }
 
-  isNearDoor() {
-    const distance = Phaser.Math.Distance.Between(
-      this.player.x,
-      this.player.y,
-      this.door.x,
-      this.door.y
-    );
+  createDoor(x, y, width, height) {
+    const door = this.add.rectangle(x, y, width, height, 0xff0000);
+    this.physics.add.existing(door, true);
+    door.isOpen = false;
 
-    return distance < 95;
+    this.doors.push(door);
+
+    this.physics.add.collider(this.player, door);
+
+    return door;
+  }
+
+  getNearClosedDoor() {
+    for (let i = 0; i < this.doors.length; i++) {
+      const door = this.doors[i];
+
+      if (!door.isOpen) {
+        const distance = Phaser.Math.Distance.Between(
+          this.player.x,
+          this.player.y,
+          door.x,
+          door.y
+        );
+
+        if (distance < 95) {
+          return door;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  areAllDoorsOpen() {
+    for (let i = 0; i < this.doors.length; i++) {
+      if (!this.doors[i].isOpen) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  checkCompleted() {
+    if (this.areAllDoorsOpen()) {
+      this.gameCompleted = true;
+      this.completedText.setVisible(true);
+      this.nearDoorText.setText('');
+      this.player.body.setVelocity(0);
+    }
   }
 
   togglePause() {
+    if (this.gameCompleted) {
+      return;
+    }
+
     this.isPaused = !this.isPaused;
     this.pauseText.setVisible(this.isPaused);
 
@@ -130,7 +216,7 @@ class GameScene extends Phaser.Scene {
   }
 
   update() {
-    if (this.isPaused) {
+    if (this.isPaused || this.gameCompleted) {
       return;
     }
 
@@ -150,10 +236,10 @@ class GameScene extends Phaser.Scene {
       this.player.body.setVelocityY(speed);
     }
 
-    if (this.isNearDoor() && !this.door.isOpen) {
+    const door = this.getNearClosedDoor();
+
+    if (door !== null) {
       this.nearDoorText.setText('Prem E per intentar obrir la porta');
-    } else if (this.door.isOpen) {
-      this.nearDoorText.setText('Porta oberta');
     } else {
       this.nearDoorText.setText('');
     }
@@ -167,6 +253,7 @@ class LockpickingScene extends Phaser.Scene {
 
   init(data) {
     this.door = data.door;
+    this.gameScene = data.gameScene;
   }
 
   create() {
@@ -382,6 +469,8 @@ class LockpickingScene extends Phaser.Scene {
         this.door.isOpen = true;
         this.door.setFillStyle(0x00ff00);
         this.door.body.enable = false;
+
+        this.gameScene.checkCompleted();
 
         this.time.delayedCall(1200, () => {
           this.closeLockpicking();
